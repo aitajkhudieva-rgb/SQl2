@@ -1,0 +1,96 @@
+---1
+CREATE TABLE Students (
+    StudentID INT,
+    FirstName NVARCHAR(50),
+    LastName NVARCHAR(50),
+    BirthDate DATE,
+    GPA DECIMAL(3,2)
+);
+GO
+--2
+DECLARE @i INT = 1;
+WHILE (SELECT COUNT(*) FROM Students) < 100000
+BEGIN
+    INSERT INTO Students (StudentID, FirstName, LastName, BirthDate, GPA)
+    SELECT 
+        (SELECT COUNT(*) FROM Students) + ROW_NUMBER() OVER (ORDER BY (SELECT NULL)),
+        N'სახელი_' + CAST(@i AS NVARCHAR(10)),
+        N'გვარი_' + CAST(@i AS NVARCHAR(10)),
+        DATEADD(DAY, -(@i % 3650), GETDATE()),
+        ROUND(2.0 + (@i % 20) * 0.1, 2)
+    FROM master.dbo.spt_values
+    WHERE type = 'P';
+    
+    SET @i += 1;
+END;
+GO
+SELECT COUNT(*) AS total_rows FROM Students;
+GO
+--3
+SET STATISTICS TIME ON;
+SET STATISTICS IO ON;
+GO
+SELECT * FROM Students WHERE StudentID = 50000;
+GO
+SET STATISTICS TIME OFF;
+SET STATISTICS IO OFF;
+GO
+
+--5
+SET STATISTICS TIME ON;
+SET STATISTICS IO ON;
+GO
+SELECT * FROM Students WHERE StudentID = 50000;
+GO
+SET STATISTICS TIME OFF;
+SET STATISTICS IO OFF;
+GO
+--6
+SELECT * FROM Students WHERE StudentID = 50000;
+SELECT * FROM Students WHERE GPA = 3.5;
+Go
+
+
+
+USE [STUDENTS. (students History)];
+GO
+
+CREATE TABLE Students (
+    StudentID INT IDENTITY(1,1) PRIMARY KEY,
+    FirstName NVARCHAR(50) NOT NULL,
+    LastName NVARCHAR(50) NOT NULL,
+    Age INT
+);
+GO
+
+CREATE TABLE StudentsHistory (
+    HistoryID INT IDENTITY(1,1) PRIMARY KEY,
+    StudentID INT,
+    FirstName NVARCHAR(50),
+    LastName NVARCHAR(50),
+    Age INT,
+    DeletedAt DATETIME DEFAULT GETDATE()
+);
+GO
+
+CREATE TRIGGER trg_AfterDeleteStudent
+ON Students
+AFTER DELETE
+AS
+BEGIN
+
+ INSERT INTO StudentsHistory (StudentID, FirstName, LastName, Age)
+ SELECT StudentID, FirstName, LastName, Age
+ FROM deleted;
+END;
+GO
+   
+INSERT INTO Students (FirstName, LastName, Age) 
+VALUES ('ali', 'aliev', 20);
+GO 
+   
+USE [STUDENTS. (students History)];
+GO
+SELECT * FROM Students;
+DELETE FROM Students WHERE StudentID = 1;
+SELECT * FROM StudentsHistory;
